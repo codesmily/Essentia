@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Note Schema",
+  "type": ["object", "array"],
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string" },
+      "title": { "type": ["string", "null"] },
+      "content": { "type": ["string", "null"] },
+      "createdAt": { "type": ["string", "null"], "format": "date-time" },
+      "userId": { "type": ["string", "null"] },
+      "currentEmotion": { "type": ["string", "null"], "enum": [
+        "MOTIVADO", "CALM", "TRISTE", "CANSADO", "MEDO", "ANIMADO", null
+      ]},
+      "deleted": { "type": "boolean" }
+    },
+    "required": ["id", "deleted"]
+  }
+}

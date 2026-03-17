@@ -1,0 +1,36 @@
+# docker-compose.test.yml
+version: '3.8'
+
+services:
+  mongo-test: # Nome diferente para evitar conflito se rodar junto com o dev
+    image: mongo:7.0
+    container_name: mongodb-test
+    hostname: mongo-test # Hostname que o serviço de teste usará para conectar
+    ports:
+      - "27018:27017" # Mapeia para uma porta diferente na máquina host (ex: 27018)
+    volumes:
+      - ./mongo_data_test:/data/db # Diretório de dados separado para testes
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test-runner:
+    image: maven:3.9.9-eclipse-temurin-21 # Usa a mesma imagem base do seu build stage
+    container_name: essentia-test-runner
+    working_dir: /app
+    volumes:
+      - ./:/app # Monta o código fonte atual no container
+      - ~/.m2:/root/.m2 # Monta o cache local do Maven para acelerar builds
+    depends_on:
+      mongo-test:
+        condition: service_healthy # Garante que o mongo está pronto antes de rodar os testes
+    environment:
+      # Define o profile ativo para 'test'
+      - SPRING_PROFILES_ACTIVE=test
+      # Fornece a URI do MongoDB apontando para o container 'mongo-test' e o banco 'essentia_test'
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo-test:27017/essentia_test
+      # Você pode adicionar outras variáveis de ambiente necessárias para os testes aqui
+    # Comando que será executado ao iniciar o container
+    command: mvn clean test -Dspring.profiles.active=test

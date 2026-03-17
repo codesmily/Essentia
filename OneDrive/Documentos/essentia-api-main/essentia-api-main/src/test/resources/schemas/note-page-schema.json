@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NotePage",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "array",
+      "items": { "$ref": "note-schema.json" }
+    },
+    "totalElements": {
+      "type": "integer",
+      "description": "Total de elementos encontrados"
+    },
+    "totalPages": {
+      "type": "integer",
+      "description": "Número total de páginas"
+    },
+    "size": {
+      "type": "integer",
+      "description": "Tamanho da página"
+    },
+    "number": {
+      "type": "integer",
+      "description": "Número da página atual (0-base)"
+    },
+    "first": {
+      "type": "boolean",
+      "description": "Indica se é a primeira página"
+    },
+    "last": {
+      "type": "boolean",
+      "description": "Indica se é a última página"
+    },
+    "empty": {
+      "type": "boolean",
+      "description": "Indica se o resultado está vazio"
+    }
+  },
+  "required": ["content", "totalElements", "size", "number"]
+}

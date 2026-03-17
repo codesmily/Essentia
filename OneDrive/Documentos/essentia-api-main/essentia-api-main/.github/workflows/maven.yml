@@ -1,0 +1,115 @@
+name: CI/CD - Essentia (Build • Test • Deploy)
+
+on:
+  push:
+    branches: [ "main", "staging" ]
+  pull_request:
+
+jobs:
+  build:
+    name: Build da aplicação
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Compilar o projeto (sem rodar testes)
+        run: mvn clean package -DskipTests
+
+      - name: Salvar artefato (JAR)
+        uses: actions/upload-artifact@v4
+        with:
+          name: essentia-jar
+          path: target/*.jar
+
+
+  test:
+    name: Executar Testes Automatizados
+    runs-on: ubuntu-latest
+    needs: build
+
+    services:
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_ROOT_USERNAME: Root
+          MONGO_INITDB_ROOT_PASSWORD: root
+          MONGO_INITDB_DATABASE: essentia-dev
+        options: >-
+          --health-cmd "mongosh --username Root --password root --eval 'db.runCommand({ ping: 1 })' --authenticationDatabase admin"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Esperar o MongoDB iniciar
+        run: |
+          echo "Aguardando MongoDB inicializar..."
+          sleep 20
+          nc -z localhost 27017
+
+      - name: Executar testes
+        run: mvn clean test -Dspring.profiles.active=dev
+
+      - name: Publicar relatórios de teste (Surefire)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/*.xml
+
+
+  deploy:
+    name: Deploy automatizado (staging / main)
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Definir ambiente de deploy
+        id: vars
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+            echo "env_dir=main" >> $GITHUB_OUTPUT
+          else
+            echo "env_dir=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Exibir ambiente selecionado
+        run: echo "🚀 Deploy para o ambiente ${{ steps.vars.outputs.env_dir }}"
+
+      - name: Build da imagem Docker
+        run: docker build -t essentia:${{ steps.vars.outputs.env_dir }} .
+
+      - name: Subir container Essentia
+        run: |
+          docker run -d -p 8080:8080 --name essentia essentia:${{ steps.vars.outputs.env_dir }}
+          docker ps
+
+      - name: Healthcheck do container
+        run: |
+          echo "🔍 Verificando status do container..."
+          sleep 10
+          docker logs essentia

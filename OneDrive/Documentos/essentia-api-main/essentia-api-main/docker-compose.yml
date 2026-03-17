@@ -1,0 +1,28 @@
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: mongodb-${APP_ENV}
+    hostname: mongo
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - ./mongo_data_${APP_ENV}:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: essentia-${APP_ENV}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      - SPRING_PROFILES_ACTIVE=${APP_ENV}
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/essentia

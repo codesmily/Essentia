@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EmotionPage",
+  "type": "object",
+  "properties": {
+    "content": {
+      "type": "array",
+      "items": { "$ref": "emotion-schema.json" }
+    },
+    "totalElements": {
+      "type": "integer",
+      "description": "Total de registros"
+    },
+    "totalPages": {
+      "type": "integer",
+      "description": "Total de páginas"
+    },
+    "size": {
+      "type": "integer",
+      "description": "Tamanho da página"
+    },
+    "number": {
+      "type": "integer",
+      "description": "Número da página atual (0-based)"
+    },
+    "first": { "type": "boolean" },
+    "last": { "type": "boolean" },
+    "empty": { "type": "boolean" }
+  },
+  "required": ["content", "totalElements", "size", "number"]
+}
